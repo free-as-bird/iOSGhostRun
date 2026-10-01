@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	AppVersion        = "0.0.6"
+	AppVersion        = "0.0.8"
 	updateManifestURL = "https://github.com/GH4NG/iOSGhostRun/releases/latest/download/update.json"
 )
 
