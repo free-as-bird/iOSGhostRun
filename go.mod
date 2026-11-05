@@ -4,17 +4,18 @@ go 1.26.3
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/danielpaulus/go-ios v1.3.3-0.20261009072143-ca2c56d2c294
+	github.com/danielpaulus/go-ios v1.3.3-0.20261103131045-6910f3b585ad
 	github.com/phlipse/go-pac v0.1.1
-	github.com/wailsapp/wails/v3 v3.0.0-beta.32
+	github.com/wailsapp/wails/v3 v3.1.0
+	golang.org/x/sys v0.49.0
 )
 
 require (
-	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/dlclark/regexp2/v2 v2.9.1 // indirect
 	github.com/dop251/goja v0.0.0-20261018113103-d42f16bb6161 // indirect
+	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/elazarl/goproxy v1.9.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
@@ -24,8 +25,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grandcat/zeroconf v1.0.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/mattn/go-colorable v0.1.16 // indirect
-	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/quic-go/quic-go v0.64.0 // indirect
@@ -40,7 +39,7 @@ require (
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
