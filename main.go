@@ -81,6 +81,7 @@ func main() {
 			cleanup()
 			return true
 		},
+		OnShutdown: cleanup,
 		// 二次启动时唤起已有窗口
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.iosghostrun.app",
@@ -136,7 +137,7 @@ func main() {
 		URL: "/",
 	})
 
-	window.OnWindowEvent(events.Common.WindowClosing, func(event *application.WindowEvent) {
+	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		if allowQuit.Load() {
 			return
 		}

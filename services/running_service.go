@@ -543,6 +543,7 @@ func (r *RunningService) runLoop(ctx context.Context) {
 				TotalPoints:   len(route),
 				ElapsedTimeMs: elapsed.Milliseconds(),
 				Progress:      progress,
+				LoopCount:     loopCount,
 			})
 
 			// 每10秒输出一次状态日志
