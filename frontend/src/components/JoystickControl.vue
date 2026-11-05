@@ -66,6 +66,7 @@ import { Events } from '@wailsio/runtime'
 import { RunningService } from '../../bindings/iOSGhostRun/services'
 import type { RoutePoint } from '../lib/routeUtils'
 import { useNotification } from '../composables/useNotification'
+import { formatDeviceError } from '../lib/deviceErrors'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
@@ -139,7 +140,7 @@ async function sendInput() {
             await RunningService.SetManualDirection(value.east, value.north, kmh)
         } catch (error) {
             if (active.value && !pending.value && !disposed) {
-                showError(`手动控制失败：${String(error)}`)
+                showError(`手动控制失败：${formatDeviceError(error)}`)
                 // 由同一停止路径收尾，不能在当前 request 内等待自身。
                 void stop()
             }
@@ -170,7 +171,7 @@ async function toggle() {
         }
     } catch (error) {
         setActive(false)
-        if (!disposed) showError(`开启手动定位失败：${String(error)}`)
+        if (!disposed) showError(`开启手动定位失败：${formatDeviceError(error)}`)
     } finally {
         pending.value = false
         if (started && !disposed) void sendInput()
@@ -188,7 +189,7 @@ async function stop() {
         started = false
         setActive(false)
     } catch (error) {
-        if (!disposed) showError(`关闭手动定位失败：${String(error)}`)
+        if (!disposed) showError(`关闭手动定位失败：${formatDeviceError(error)}`)
     } finally {
         pending.value = false
         if (started && !disposed) void sendInput()

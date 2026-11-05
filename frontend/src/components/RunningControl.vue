@@ -177,6 +177,7 @@ import { Events } from '@wailsio/runtime'
 import { RunningService } from '../../bindings/iOSGhostRun/services'
 import type { RunningStatus } from '../../bindings/iOSGhostRun/services/models'
 import { formatDistance, formatTime, type RoutePoint } from '../lib/routeUtils'
+import { formatDeviceError } from '../lib/deviceErrors'
 import { useNotification } from '../composables/useNotification'
 import { useRunningParamsStore } from '../stores/runningParams'
 import { Card } from '@/components/ui/card'
@@ -389,7 +390,7 @@ async function runAction(
         await request()
     } catch (e) {
         if (!disposed)
-            showErrorDialog(`${errorMessage}: ${e instanceof Error ? e.message : '未知错误'}`)
+            showErrorDialog(`${errorMessage}: ${formatDeviceError(e)}`)
     } finally {
         // 先等旧查询收尾，再读取操作完成后的状态，避免复用操作前的快照。
         await syncStatusAfterPending(true)
@@ -451,7 +452,7 @@ function updateStatus(reportError = false): Promise<void> {
         } catch (e) {
             // 后台兜底失败保持静默，避免反复弹出相同错误。
             if (reportError && !disposed && revision === statusRevision) {
-                showErrorDialog(`获取状态失败: ${e instanceof Error ? e.message : '未知错误'}`)
+                showErrorDialog(`获取状态失败: ${formatDeviceError(e)}`)
             }
         }
     })().finally(() => {
@@ -486,7 +487,7 @@ onMounted(() => {
     offError = Events.On('running:error', ev => {
         statusRevision++
         void syncStatusAfterPending()
-        showErrorDialog(`跑步任务失败: ${ev.data}`)
+        showErrorDialog(`跑步任务失败: ${formatDeviceError(ev.data)}`)
     })
 
     void updateStatus(true)

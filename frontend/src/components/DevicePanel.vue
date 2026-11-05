@@ -89,6 +89,7 @@ import { MobileIcon, UpdateIcon } from '@radix-icons/vue'
 import { DevicesService } from '../../bindings/iOSGhostRun/services'
 import type { DeviceInfo as ServiceDeviceInfo } from '../../bindings/iOSGhostRun/services/models'
 import { useNotification } from '../composables/useNotification'
+import { formatDeviceError } from '../lib/deviceErrors'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -145,14 +146,8 @@ async function refreshDevices() {
         }
     } catch (e) {
         if (disposed) return
-        const message = e instanceof Error ? e.message : '未知错误'
-        const lowerMessage = message.toLowerCase()
-
-        if (
-            message.includes('信任此电脑') ||
-            lowerMessage.includes('invalidhostid') ||
-            lowerMessage.includes('invalid host id')
-        ) {
+        const message = formatDeviceError(e)
+        if (message.includes('信任此电脑')) {
             showWarning(message, 6000)
         } else {
             showErrorDialog(`操作失败: ${message}`)

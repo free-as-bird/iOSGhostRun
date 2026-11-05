@@ -29,7 +29,8 @@ func (d *DevicesService) ListDevices() ([]DeviceInfo, error) {
 	}
 
 	devices := make([]DeviceInfo, 0)
-	trustHintShown := false
+	var deviceHint string
+	var lastDeviceErr error
 	for _, entry := range list.DeviceList {
 		// 仅接受 USB 连接的设备，过滤掉 Network 或其他连接类型
 		connectionType := entry.ConnectionTypeLabel()
@@ -39,14 +40,23 @@ func (d *DevicesService) ListDevices() ([]DeviceInfo, error) {
 		}
 
 		udid := entry.Properties.SerialNumber
-		info, err := GetDeviceInfo(udid)
+		info, err := getDeviceInfo(entry)
 		if err != nil {
+			lastDeviceErr = err
 			Log.Debug("DevicesService", "跳过设备: "+udid+" -> "+err.Error())
-			if !trustHintShown {
+			if deviceHint == "" {
 				errMsg := strings.ToLower(err.Error())
-				if strings.Contains(errMsg, "invalidhostid") || strings.Contains(errMsg, "invalid host id") {
-					Log.Warn("DevicesService", "设备连接被拒绝：请解锁手机并点击“信任此电脑”，然后重新插拔 USB 再刷新设备列表")
-					trustHintShown = true
+				switch {
+				case strings.Contains(errMsg, "devicelocked"), strings.Contains(errMsg, "device is locked"):
+					deviceHint = "设备已锁定，请解锁 iPhone 或 iPad 后重新刷新"
+				case strings.Contains(errMsg, "pairingdialogresponsepending"):
+					deviceHint = "设备正在等待配对确认，请解锁设备并选择“信任此电脑”"
+				case strings.Contains(errMsg, "invalidhostid"), strings.Contains(errMsg, "invalid host id"),
+					strings.Contains(errMsg, "invalidpairrecord"), strings.Contains(errMsg, "userdeniedpairing"):
+					deviceHint = "设备配对失败，请解锁设备、重新连接 USB 并选择“信任此电脑”"
+				}
+				if deviceHint != "" {
+					Log.Warn("DevicesService", deviceHint+"；Error: "+err.Error())
 				}
 			}
 			continue
@@ -55,8 +65,13 @@ func (d *DevicesService) ListDevices() ([]DeviceInfo, error) {
 		devices = append(devices, info)
 	}
 
-	if trustHintShown && len(devices) == 0 {
-		return nil, fmt.Errorf("设备连接被拒绝：请解锁手机并点击“信任此电脑”")
+	if len(devices) == 0 && lastDeviceErr != nil {
+		if deviceHint != "" {
+			return nil, fmt.Errorf("%s", deviceHint)
+		}
+		err := fmt.Errorf("读取已连接设备信息失败: %w", lastDeviceErr)
+		Log.Error("DevicesService", err.Error())
+		return nil, err
 	}
 
 	Log.Info("DevicesService", fmt.Sprintf("找到 %d 个可连接设备", len(devices)))
@@ -98,6 +113,11 @@ func (d *DevicesService) selectDevice(udid string) error {
 	}
 
 	if err := MountImage(udid); err != nil {
+		if strings.Contains(err.Error(), "DeviceLocked") {
+			Log.Error("ImageService", "设备已锁定，请解锁 iPhone 或 iPad 后重试；底层错误: "+err.Error())
+		} else {
+			Log.Error("ImageService", err.Error())
+		}
 		return err
 	}
 	d.mu.Lock()
