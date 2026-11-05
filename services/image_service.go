@@ -148,7 +148,8 @@ func closeImageMounter(mounter imagemounter.ImageMounter) {
 }
 
 func mountDeveloperImage(device ios.DeviceEntry, version *semver.Version) error {
-	kind := selectDeveloperImageKind(version, supportsCryptexInstall(device))
+	supportsCryptex := supportsCryptexInstall(device)
+	kind := selectDeveloperImageKind(version, supportsCryptex)
 	mounter, err := newDeveloperImageMounter(device, version, kind)
 	if err != nil {
 		return fmt.Errorf("连接镜像服务失败: %w", err)
@@ -175,6 +176,22 @@ func mountDeveloperImage(device ios.DeviceEntry, version *semver.Version) error 
 		}
 		if len(images) > 0 {
 			Log.Info("ImageService", "Personalized 开发者镜像已挂载，复用现有镜像")
+			return nil
+		}
+	}
+
+	if kind == imagePersonalized && supportsCryptex {
+		cryptex, err := imagemounter.NewCryptexDeveloperDiskImageMounter(device)
+		if err != nil {
+			return fmt.Errorf("连接 Cryptex 镜像服务失败: %w", err)
+		}
+		defer closeImageMounter(cryptex)
+		images, err := cryptex.ListImages()
+		if err != nil {
+			return fmt.Errorf("查询 Cryptex 镜像失败: %w", err)
+		}
+		if len(images) > 0 {
+			Log.Info("ImageService", "Cryptex 开发者镜像已挂载，复用现有镜像")
 			return nil
 		}
 	}

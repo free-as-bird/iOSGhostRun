@@ -15,6 +15,7 @@
 
 ### 修复
 
+- 修复选择 Personalized 镜像时未检测已安装 Cryptex 镜像的问题。
 - 修复跑步状态事件遗漏总圈数的问题。
 - 修复 Wails 3.1 下关闭窗口时确认对话框可能未能阻止窗口关闭的问题。
 - 修复开发者镜像重复挂载 ([#19](https://github.com/GH4NG/iOSGhostRun/pull/19))

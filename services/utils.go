@@ -2,9 +2,7 @@ package services
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/Masterminds/semver"
 	"github.com/danielpaulus/go-ios/ios"
@@ -43,13 +41,17 @@ func GetDeviceInfo(udid string) (DeviceInfo, error) {
 		return DeviceInfo{}, fmt.Errorf("获取设备失败: %w", err)
 	}
 
+	return getDeviceInfo(device)
+}
+
+func getDeviceInfo(device ios.DeviceEntry) (DeviceInfo, error) {
 	info, err := ios.GetValues(device)
 	if err != nil {
 		return DeviceInfo{}, fmt.Errorf("获取设备值失败: %w", err)
 	}
 
 	return DeviceInfo{
-		UDID:           udid,
+		UDID:           device.Properties.SerialNumber,
 		DeviceName:     info.Value.DeviceName,
 		ProductType:    info.Value.ProductType,
 		ProductVersion: info.Value.ProductVersion,
