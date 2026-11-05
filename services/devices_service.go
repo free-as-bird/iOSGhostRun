@@ -87,15 +87,12 @@ func (d *DevicesService) selectDevice(udid string) error {
 
 	// 先检测 iOS 版本
 	if version.Major() >= 17 {
-		// 再检测 Wintun
-		if !CheckWintunInstalled() {
-			err := fmt.Errorf("iOS 17+ 设备需要安装 Wintun")
-			Log.Error("DevicesService", err.Error())
-			return err
-		}
-
-		Log.Info("DevicesService", "检测到 iOS17+ 且 Wintun 已安装，启用隧道服务")
-		if err := ensureTunnelReady(udid); err != nil {
+		Log.Info("DevicesService", "检测到 iOS 17+，启用隧道服务")
+		if err := ensureTunnelReady(udid, version); err != nil {
+			message := err.Error()
+			if !strings.HasPrefix(message, "已取消管理员权限请求") && !strings.HasPrefix(message, "正在以管理员身份重启") {
+				Log.Error("TunnelService", message)
+			}
 			return err
 		}
 	}

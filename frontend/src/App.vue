@@ -300,6 +300,27 @@
                 </div>
             </div>
 
+            <div v-if="elevationRequest" class="fixed inset-0 z-[10000] flex items-center justify-center px-6"
+                style="--wails-draggable: no-drag" role="dialog" aria-modal="true"
+                aria-labelledby="elevation-dialog-title" @keydown.esc.stop.prevent="respondToElevation(false)">
+                <div class="absolute inset-0 bg-black/45 backdrop-blur-[2px]" @click="respondToElevation(false)"></div>
+                <div
+                    class="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-5">
+                    <div class="space-y-2">
+                        <h2 id="elevation-dialog-title" class="text-lg font-bold">需要管理员权限</h2>
+                        <p class="text-sm text-muted-foreground">
+                            该设备需要使用系统隧道，并需要管理员权限。继续后 Windows 将请求授权，程序会重启，请重新选择设备。
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <button ref="elevationCancelButton" class="px-4 h-9 rounded-md border border-border hover:bg-secondary/40 transition-colors"
+                            @click="respondToElevation(false)">取消</button>
+                        <button class="px-4 h-9 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                            @click="respondToElevation(true)">继续</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 开发者模式提醒弹窗 -->
             <div v-if="showDeveloperModeAlert" class="fixed inset-0 z-[10000] flex items-center justify-center px-6"
                 style="--wails-draggable: no-drag">
@@ -376,6 +397,8 @@ const editableRoutePoints = computed({
 })
 const isLogCollapsed = ref(true)
 const showCloseDialog = ref(false)
+const elevationRequest = ref<string | null>(null)
+const elevationCancelButton = ref<HTMLButtonElement | null>(null)
 const isMacOS = ref(System.IsMac() || navigator.userAgent.includes('Mac OS X'))
 const isLinux = System.IsLinux()
 const showDeveloperModeAlert = ref(false)
@@ -423,6 +446,13 @@ async function onMinimise() {
 async function onToggleMaximise() {
     await Window.ToggleMaximise()
     isMaximized.value = !isMaximized.value
+}
+
+function respondToElevation(confirmed: boolean) {
+    const id = elevationRequest.value
+    if (!id) return
+    elevationRequest.value = null
+    void Events.Emit('app:elevation-response', `${id}:${confirmed ? 'confirm' : 'cancel'}`)
 }
 
 function requestClose() {
@@ -511,6 +541,15 @@ onMounted(() => {
         })
     }
 
+    offElevationConfirm = Events.On('app:elevation-confirm', event => {
+        if (typeof event.data !== 'string') return
+        elevationRequest.value = event.data
+        void nextTick(() => elevationCancelButton.value?.focus())
+    })
+    offElevationExpired = Events.On('app:elevation-expired', event => {
+        if (event.data === elevationRequest.value) elevationRequest.value = null
+    })
+
     offCloseRequested = Events.On('app:close-requested', () => {
         showCloseDialog.value = true
     })
@@ -538,11 +577,16 @@ onMounted(() => {
     updateCheckTimer = window.setTimeout(() => void checkForUpdate(false), 1500)
 })
 
+let offElevationConfirm: (() => void) | null = null
+let offElevationExpired: (() => void) | null = null
 let offCloseRequested: (() => void) | null = null
 let offDeveloperModeAlert: (() => void) | null = null
 let offUpdateProgress: (() => void) | null = null
 
 onUnmounted(() => {
+    respondToElevation(false)
+    offElevationConfirm?.()
+    offElevationExpired?.()
     if (updateCheckTimer !== null) window.clearTimeout(updateCheckTimer)
     compactMediaQuery?.removeEventListener('change', syncCompactLayout)
     if (offCloseRequested) {

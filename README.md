@@ -11,7 +11,7 @@
 - **设备管理**: 自动检测并连接 iOS 设备，支持任意 iOS 版本。
 - **跨平台桌面端**: 支持 Windows、macOS、Linux。
 
-> **iOS 17+ 说明**: 要在 Windows 上运行此功能，请根据自己的架构从 `assets/wintun/{arm|x86|x64}/wintun.dll` 中选取对应版本的 wintun.dll 并复制到 `C:/Windows/system32`
+> **iOS 17 说明**：使用 iOS 17.0–17.4.0 设备时，程序会请求管理员或 root 权限，允许后程序会重启，同时 Windows 首次使用系统隧道时会从 Wintun 官网下载对应 DLL
 
 ## 截图
 

@@ -4,10 +4,13 @@ import (
 	"embed"
 	_ "embed"
 	"iOSGhostRun/services"
+	"iOSGhostRun/services/wintun"
 	"log"
 	"log/slog"
+	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -30,9 +33,15 @@ func init() {
 	application.RegisterEvent[string]("developer-mode-menu-revealed")
 	application.RegisterEvent[application.Void]("app:close-requested")
 	application.RegisterEvent[application.Void]("app:close-quit")
+	application.RegisterEvent[string]("app:elevation-confirm")
+	application.RegisterEvent[string]("app:elevation-response")
+	application.RegisterEvent[string]("app:elevation-expired")
 }
 
 func main() {
+	if err := wintun.WaitForElevationParent(); err != nil {
+		log.Fatalf("提权重启失败: %v", err)
+	}
 	services.ConfigureDownloadProxy()
 	dataRoot, err := services.InitializeDataDirectory()
 	if err != nil {
@@ -50,8 +59,10 @@ func main() {
 	var window *application.WebviewWindow
 	var allowQuit atomic.Bool
 	var cleanupOnce sync.Once
+	shutdown := make(chan struct{})
 	cleanup := func() {
 		cleanupOnce.Do(func() {
+			close(shutdown)
 			services.SetAppShuttingDown(true)
 			runningSvc.StopRun()
 			devInfo, err := devicesSvc.GetSelectedDevice()
@@ -132,6 +143,61 @@ func main() {
 		event.Cancel()
 		app.Event.Emit("app:close-requested")
 	})
+
+	var confirmationMu sync.Mutex
+	var confirmationID atomic.Uint64
+	var pendingID string
+	var pendingResponse chan bool
+	app.Event.On("app:elevation-response", func(event *application.CustomEvent) {
+		response, ok := event.Data.(string)
+		if !ok {
+			return
+		}
+		confirmationMu.Lock()
+		defer confirmationMu.Unlock()
+		if pendingResponse == nil {
+			return
+		}
+		switch response {
+		case pendingID + ":confirm":
+			select {
+			case pendingResponse <- true:
+			default:
+			}
+		case pendingID + ":cancel":
+			select {
+			case pendingResponse <- false:
+			default:
+			}
+		}
+	})
+	services.SetTunnelElevationConfirmation(func() bool {
+		id := strconv.FormatUint(confirmationID.Add(1), 10)
+		response := make(chan bool, 1)
+		confirmationMu.Lock()
+		pendingID, pendingResponse = id, response
+		confirmationMu.Unlock()
+		defer func() {
+			confirmationMu.Lock()
+			if pendingResponse == response {
+				pendingID, pendingResponse = "", nil
+			}
+			confirmationMu.Unlock()
+		}()
+		app.Event.Emit("app:elevation-confirm", id)
+		timer := time.NewTimer(2 * time.Minute)
+		defer timer.Stop()
+		select {
+		case confirmed := <-response:
+			return confirmed
+		case <-shutdown:
+			return false
+		case <-timer.C:
+			app.Event.Emit("app:elevation-expired", id)
+			return false
+		}
+	})
+	services.SetTunnelElevationRestart(app.Quit)
 
 	app.Event.On("app:close-quit", func(_ *application.CustomEvent) {
 		if allowQuit.Load() {

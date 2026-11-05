@@ -182,7 +182,10 @@ async function selectDevice(device: ServiceDeviceInfo) {
         showSuccess(`已选择设备: ${device.DeviceName || '未知设备'}`)
     } catch (e) {
         if (disposed) return
-        showErrorDialog(`操作失败: ${e instanceof Error ? e.message : '未知错误'}`)
+        const message = e instanceof Error ? e.message : String(e)
+        if (!message.startsWith('已取消管理员权限请求')) {
+            showErrorDialog(`操作失败: ${formatDeviceError(e)}`)
+        }
     } finally {
         selectingUdid.value = ''
     }
